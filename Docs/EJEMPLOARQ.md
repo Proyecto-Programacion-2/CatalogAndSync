@@ -74,8 +74,8 @@ CatalogAndSync/
 │
 ├── src/test/java/com/proyecto/catalogosync/
 │   ├── catalog/                          # unit (dominio) + integration (JPA sobre Postgres)
-│   └── sync/                             # sync con stub de catedra (Docker Compose)
-└── docker-compose.yml                    # postgres + kafka + redis (+ stub catedra opcional)
+│   └── sync/                             # unit del sync; la cátedra no se emula (IR §3)
+└── docker-compose.yml                    # postgres (PENDIENTE: aun no existe)
 ```
 
 ## 2. Reglas que transmite el árbol
