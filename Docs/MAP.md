@@ -21,7 +21,7 @@ Plan de desarrollo de ESTE repositorio, autocontenido. El mapa global del proyec
 
 | # | Hito | Criterio de salida |
 | --- | --- | --- |
-| 0.1 | Cuenta tecnica de catedra: `POST /api/student/register` a mano, una vez. Guardar `id_token` + bloque `integration` FUERA del repo. Si se pierde el JWT: nueva cuenta (IR §5.4) | `provisioningStatus: PROVISIONED` |
+| 0.1 | **HECHO 2026-09-28.** Cuenta tecnica de catedra: `POST /api/student/register` a mano, una vez. Guardar `id_token` + bloque `integration` FUERA del repo. Si se pierde el JWT: nueva cuenta (IR §5.4) | `provisioningStatus: PROVISIONED` |
 | 0.2 | Decidir herramienta de migraciones | Decidida y registrada en `ARQUITECTURA.md` |
 | 0.3 | Higiene del repo: commitear el scaffold de JHipster, nunca `catalogandsync.zip` | `git status` limpio |
 | 0.4 | Docker Compose con PostgreSQL (DECIDIDO, cuando la sync lo necesite). Antes: entorno — grupo `docker` (`sudo usermod -aG docker $USER` + re-login), plugin Compose v2 (hoy solo `docker-compose` v1). Compose = SOLO PostgreSQL (IR §3) | Compose levanta; usuario y esquema `catalog` creados |

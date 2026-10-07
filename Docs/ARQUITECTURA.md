@@ -46,7 +46,7 @@ central de la catedra (IR §3).
 ## 2. Flujo de punta a punta (usuario final → turno confirmado)
 
 **Fase 0 — Provisionamiento (unica vez, manual)**
-1. Registrar la cuenta tecnica con Postman → `POST /api/student/register`, obtener `id_token` (JWT 1 anio) + `integration` (hosts, topics, consumer group) [IR §5.1]. Fijo: guardarlo externalizado, jamas en el repo ni en KMP [IR §5.1, §9]. [DEC: como se guarda el secreto, rotacion via `POST /api/authenticate`].
+1. Registrar la cuenta tecnica → `POST /api/student/register`, obtener `id_token` (JWT 1 anio) + `integration` (hosts, topics, consumer group) [IR §5.1]. **HECHO 2026-09-28**: `groupId` = `proyecto-franco-quiroga`, `login` = `franco.e`, `provisioningStatus` = `PROVISIONED` en el primer intento. Verificado a mano: `GET /api/student/integration` y `GET /api/synchronization/snapshot` devuelven 200, y Redis acepta `AUTH` con el usuario ACL `grp_proyecto-franco-quiroga` tanto en lectura (`catedra:sync:*`) como en escritura (`alumnos:proyecto-franco-quiroga:*`). Los hosts del bloque `integration` coinciden con los entregados por la catedra (API `:8090`, Redis `:6379`, Kafka `:9094`). El JWT lleva `ROLE_STUDENT_CLIENT` y vence en 364 dias. DECIDIDO: el secreto vive en un `.env` con permisos `600` en la raiz de cada repo backend, cubierto por `.gitignore` (`.env`, `.env.local`, `.env.*`, `*.env`, con `!*.env.example` para poder versionar una plantilla sin secretos); jamas en el repo, en logs ni en KMP [IR §5.1, §9]. Se guarda tambien el password de la cuenta tecnica para poder rotar el JWT con `POST /api/authenticate` (`rememberMe: true`) sin dar de alta otra cuenta. Si el `.env` se pierde o se expone, hay que crear otra cuenta tecnica (IR §5.4). PENDIENTE: Spring Boot no lee `.env` solo; falta el `spring.config.import` (hito 0.5). PENDIENTE: la conectividad real de Kafka (productor y consumidor) no se pudo verificar a mano por falta de herramientas cliente en la maquina; queda para el hito 1.7.
 
 **Fase 1 — Autenticacion del usuario final**
 2. KMP → CatalogAndSync: registro/login; hashea la contrasena, crea usuario activo inmediato (modelo JHipster: `login`, `password`, `firstName`, `lastName`, `email`, `imageUrl`, `langKey`) y emite JWT de usuario [PS §3.2, §9]. TurnosYReservas valida ese JWT para identificar al usuario, pero no emite sesiones.
@@ -95,6 +95,7 @@ central de la catedra (IR §3).
 | Motor de BD | PostgreSQL, instancia unica, esquemas separados (`catalog` / `turnos`), usuarios sin permisos cruzados, migraciones independientes | PS §3 |
 | Infraestructura local | Docker Compose con PostgreSQL. DECIDIDO pero AUN NO IMPLEMENTADO: no existe `docker-compose.yml`. Se implementa cuando la sincronizacion necesite la base de datos | PS §3; ver `MAP.md` |
 | Hold no se cancela manualmente | No existe endpoint de cancelacion de hold (IR §6); el hold expira segun `expiresAt` de la catedra y una copia local no extiende el TTL. Si el usuario abre otro turno, el hold anterior queda sin confirmar y expira | IR §6, §9; PS §7 |
+| Almacenamiento del secreto de catedra | Un `.env` con permisos `600` en la raiz de cada repo backend (hoy solo `CatalogAndSync/catalogandsync/`), cubierto por `.gitignore`. Se duplica por repo cuando TurnosYReservas tenga codigo, porque los repos son separados y no hay modulo compartido. Contiene `CATEDRA_JWT`, `CATEDRA_TECHNICAL_PASSWORD`, `CATEDRA_REDIS_PASSWORD` y la config de `integration`. Rotacion del JWT via `POST /api/authenticate` con `rememberMe: true`. Si se pierde o se expone: cuenta tecnica nueva (IR §5.4) | IR §5.1, §5.2, §5.4, §9 |
 
 ## 4. Decisiones pendientes (NO asumir; consultar al usuario)
 
@@ -103,6 +104,7 @@ central de la catedra (IR §3).
 - CatalogAndSync: motor de BD y entidades, estrategia transaccional de sincronizacion, dedup de notificaciones/cambios y deteccion de discontinuidad, uso del namespace privado de Redis `alumnos:{groupId}:*` (auxiliar, no fuente de verdad — IR §14.6), contrato interno hacia Turnos, endpoints/DTO de busqueda, alcance de pruebas.
 - CatalogAndSync (esquema del CU_2): tipo de `day_of_week` (enum Postgres + CHECK vs varchar(9) con los 7 valores exactos del contrato, IR §7), criterio e indice de busqueda por nombre de profesional (first_name + last_name, ILIKE/citext), garantia de fila unica en `catalog_version`.
 - Globales: endpoints/DTO propios entre KMP y backends, politica de errores internos, documentacion y evidencias.
+- Integracion Kafka: el bloque `integration` de la catedra NO define como se autentica el broker (no hay SASL, TLS ni credenciales; solo `kafkaBootstrapServers` y `kafkaConsumerGroupId`). Un Metadata request sin credenciales no fue rechazado, lo que sugiere que no se exige autenticacion, pero eso no esta documentado y hay que confirmarlo con la catedra antes de fijar la configuracion del cliente.
 
 ## 5. Lo fijo (no se decide)
 
@@ -151,4 +153,4 @@ Las versiones canonicas de estos documentos viven en la raiz del proyecto. Los c
 
 ## 7. Mapa de desarrollo
 
-El plan de trabajo por fases e hitos vive en `MAP.md`, en la raiz del workspace. Ese `MAP.md` es el mapa GLOBAL y **no se propaga** a los repositorios: cada repositorio tiene su propio `MAP.md`, autocontenido, con lo que corresponde desarrollar solo a ese repositorio.
+El plan de trabajo por fases e hitos vive en `MAP.md`, en la raiz del workspace. Ese `MAP.md` es el mapa GLOBAL y **no se propaga** a los repositorios: cada repositorio tiene su propio `MAP.md`, autocontenido, dentro de su carpeta `Docs/`, con lo que corresponde desarrollar solo a ese repositorio.

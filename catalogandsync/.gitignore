@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Secretos de la catedra ###
+# El .env real jamas se commitea: contiene el JWT tecnico y el password de Redis (IR §5.1).
+.env
+.env.local
+.env.*
+*.env
+!*.env.example

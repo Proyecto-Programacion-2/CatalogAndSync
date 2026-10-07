@@ -17,8 +17,8 @@ Si este repositorio y los otros dos desincronizan estos documentos, la referenci
 Cada repositorio replica tambien `ARQUITECTURA.md`. Al modificar cualquiera de estos documentos, propagar el cambio a los 3 repositorios y a la raiz.
 
 ## Docs/
-- `Docs/CU_2.md` — caso de uso 2 (esquema BD local + filtros). Fuente de verdad del esquema local, subordinada a la catedra (PS §6).
-- `Docs/EJEMPLOARQ.md` — ejemplo ilustrativo de arquitectura hexagonal (contextos `catalog`/`sync`). NO es fuente de verdad de decisiones; las decisiones viven en `ARQUITECTURA.md`.
+- `CU_2.md` — caso de uso 2 (esquema BD local + filtros). Fuente de verdad del esquema local, subordinada a la catedra (PS §6).
+- `EJEMPLOARQ.md` — ejemplo ilustrativo de arquitectura hexagonal (contextos `catalog`/`sync`). NO es fuente de verdad de decisiones; las decisiones viven en `ARQUITECTURA.md`.
 - `MAP.md` (este repo) — plan de desarrollo unicamente de CatalogAndSync. Mapa global del proyecto: `MAP.md` en la raiz del workspace (no se propaga).
 
 ## Build y comandos
