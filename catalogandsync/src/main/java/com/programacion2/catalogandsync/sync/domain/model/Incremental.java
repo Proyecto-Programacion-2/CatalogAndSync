@@ -1,4 +1,11 @@
 package com.programacion2.catalogandsync.sync.domain.model;
 
-public class Incremental {
+import java.util.List;
+
+public record Incremental(
+        long version,
+        List<Long> categoryIds,
+        List<Long> professionalIds,
+        List<Long> scheduleIds
+) {
 }
