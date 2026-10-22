@@ -5,5 +5,5 @@ public record SyncOutcome(
         long appliedVersion,
         boolean nothingChanged
 ) {
-    if SyncMode mode == SyncMode 
+
 }

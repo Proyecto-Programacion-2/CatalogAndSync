@@ -1,3 +1,19 @@
 spring:
   application:
     name: catalogandsync
+logging:
+  # Nivel de log general (root) y específicos por paquete
+  level:
+    root: INFO
+    com.programacion2.catalogandsync: INFO
+    # Opcional: silenciar o ajustar paquetes de terceros/Spring
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+
+  # Configuración de salida a archivo (opcional)
+  file:
+    name: logs/app.log
+
+  # Patrón de formato para consola (opcional)
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
