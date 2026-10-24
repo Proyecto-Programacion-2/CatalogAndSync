@@ -1,6 +1,7 @@
 package com.programacion2.catalogandsync.sync.application.usecases;
 
 import com.programacion2.catalogandsync.catalog.domain.model.CatalogVersion;
+import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogConsistencyPort;
 import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogVersionReaderPort;
 import com.programacion2.catalogandsync.sync.application.service.SyncPlanner;
 import com.programacion2.catalogandsync.sync.domain.model.SyncDecision;
@@ -26,21 +27,21 @@ public class SyncCatalogUseCaseImpl implements SyncCatalogUseCase {
     private  CatalogWritePort catalogWritePort;
     private  SyncPlanner syncPlanner;
     private VersionLedgerPort versionLedgerPort;
+    private CatalogConsistencyPort catalogConsistencyPort;
         @Override
     public SyncOutcome sync() {
+            // ledger → planner → fuente de datos → writePort → SyncOutcome
             //Ledger work, its supposed to read versions and get a decision
-            boolean localStateVerifible = true;
+
             Optional<Long> localVersion = versionLedgerPort.localVersion();
-            if (localVersion.isEmpty()){
-                localStateVerifible = false;
-            };
             long currentVersion = versionLedgerPort.currentVersion();
             long oldestAvailableVersion = versionLedgerPort.oldestAvailableVersion();
+            // here it needs to verify the state of the data
+            boolean localStateVerifiable = catalogConsistencyPort.isStateVerifiable(localVersion);
             //planner, returns a decision
-            // here it needs to verify the state of the database
 
-            SyncDecision decision = syncPlanner.decide(localVersion,currentVersion,oldestAvailableVersion,localStateVerifible);
-            // ledger → planner → fuente de datos → writePort → SyncOutcome
+            SyncDecision decision = syncPlanner.decide(localVersion,currentVersion,oldestAvailableVersion,localStateVerifiable);
+
 
         /* if (mode == NOTHING) {
             log.info("Nothing to sync");
