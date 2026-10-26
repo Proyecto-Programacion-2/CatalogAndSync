@@ -1,33 +1,32 @@
 package com.programacion2.catalogandsync.sync.application.usecases;
 
-import com.programacion2.catalogandsync.catalog.domain.model.CatalogVersion;
+
 import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogConsistencyPort;
-import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogVersionReaderPort;
+
 import com.programacion2.catalogandsync.sync.application.service.SyncPlanner;
+import com.programacion2.catalogandsync.sync.application.service.executors.IncrementalExecutor;
+import com.programacion2.catalogandsync.sync.application.service.executors.NothingExecutor;
+import com.programacion2.catalogandsync.sync.application.service.executors.SnapshotExecutor;
 import com.programacion2.catalogandsync.sync.domain.model.SyncDecision;
-import com.programacion2.catalogandsync.sync.domain.model.SyncMode;
 import com.programacion2.catalogandsync.sync.domain.model.SyncOutcome;
 import com.programacion2.catalogandsync.sync.domain.ports.in.SyncCatalogUseCase;
-import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogWritePort;
 import com.programacion2.catalogandsync.sync.domain.ports.out.VersionLedgerPort;
-import com.programacion2.catalogandsync.sync.infrastructure.persistence.adapter.VersionLedgerAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
 import java.util.Optional;
-
-import static com.programacion2.catalogandsync.sync.domain.model.SyncMode.NOTHING;
-import static com.programacion2.catalogandsync.sync.domain.model.SyncMode.SNAPSHOT;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
+
 public class SyncCatalogUseCaseImpl implements SyncCatalogUseCase {
-    private  CatalogWritePort catalogWritePort;
-    private  SyncPlanner syncPlanner;
-    private VersionLedgerPort versionLedgerPort;
-    private CatalogConsistencyPort catalogConsistencyPort;
+    private final SyncPlanner syncPlanner;
+    private final VersionLedgerPort versionLedgerPort;
+    private final CatalogConsistencyPort catalogConsistencyPort;
+    private final NothingExecutor nothingExecutor;
+    private final IncrementalExecutor incrementalExecutor;
+    private final SnapshotExecutor snapshotExecutor;
         @Override
     public SyncOutcome sync() {
             // ledger → planner → fuente de datos → writePort → SyncOutcome
@@ -41,20 +40,11 @@ public class SyncCatalogUseCaseImpl implements SyncCatalogUseCase {
             //planner, returns a decision
 
             SyncDecision decision = syncPlanner.decide(localVersion,currentVersion,oldestAvailableVersion,localStateVerifiable);
-
-
-        /* if (mode == NOTHING) {
-            log.info("Nothing to sync");
-            return new SyncOutcome(mode, appliedVersion, false);
+            return switch (decision) {
+                case SyncDecision.Nothing n        -> nothingExecutor.execute(n);
+                case SyncDecision.Snapshot s       -> snapshotExecutor.execute(s);
+                case SyncDecision.Incremental i    -> incrementalExecutor.execute(i);
+            };
         }
-
-        else if (mode == SNAPSHOT) {
-            catalogWritePort.applyVersion();
-            //Poner aca un log de que se cambió
-        }*/
-
-            return null;
-        }
-
-
 }
+

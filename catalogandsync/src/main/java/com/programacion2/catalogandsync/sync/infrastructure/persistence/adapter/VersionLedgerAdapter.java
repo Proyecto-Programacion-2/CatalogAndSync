@@ -1,15 +1,16 @@
 package com.programacion2.catalogandsync.sync.infrastructure.persistence.adapter;
 
 import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogVersionReaderPort;
-import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogWritePort;
 import com.programacion2.catalogandsync.sync.domain.ports.out.VersionLedgerPort;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-
 import java.util.Optional;
 
+
+@RequiredArgsConstructor
 @Component
 public class VersionLedgerAdapter implements VersionLedgerPort {
-    CatalogVersionReaderPort catalogVersionReader;
+    private final CatalogVersionReaderPort catalogVersionReader;
     @Override
     public Optional<Long> localVersion() {
         try {
@@ -23,11 +24,11 @@ public class VersionLedgerAdapter implements VersionLedgerPort {
 
     @Override
     public long currentVersion() {
-        return 0;
+        throw new UnsupportedOperationException("Cátedra version source not implemented");
     }
 
     @Override
     public long oldestAvailableVersion() {
-        return 0;
+        throw new UnsupportedOperationException("Cátedra version source not implemented");
     }
 }

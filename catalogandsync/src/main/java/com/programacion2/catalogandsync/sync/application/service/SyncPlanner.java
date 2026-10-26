@@ -13,6 +13,26 @@ public class SyncPlanner {
             long oldestAvailableVersion,
             boolean localStateVerifiable
     ) {
-        throw new UnsupportedOperationException();
+        /* the first if [if (!localStateVerifiable)] MUST come first, the reasoning is:
+        if the DB is broken/down then: (localStateVerifiable = False and localVersion.isEmpty() = True)
+        that makes it so that the reasoning for the snapshot was always going to be empty catalog
+        and not local state broken.
+         */
+        if (!localStateVerifiable) {
+            return  new SyncDecision.Snapshot("Local_State_Not_Verifiable");
+        }
+        if (localVersion.isEmpty()) {
+            return  new SyncDecision.Snapshot("Empty_Local_Catalog");
+        }
+
+        long local = localVersion.get();
+        if (local < oldestAvailableVersion) {
+            return new SyncDecision.Snapshot("Local_Version_Out_Of_Window");
+        }
+        if (local >= currentVersion) {
+            return new SyncDecision.Nothing(local);
+        }
+        return new SyncDecision.Incremental(local +1, currentVersion);
+
     }
 }
