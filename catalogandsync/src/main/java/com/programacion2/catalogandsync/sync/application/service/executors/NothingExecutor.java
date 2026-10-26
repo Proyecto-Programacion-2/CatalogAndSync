@@ -10,9 +10,9 @@ import static com.programacion2.catalogandsync.sync.domain.model.SyncMode.NOTHIN
 @Slf4j
 @Component
 public class NothingExecutor {
-    public SyncOutcome execute(SyncDecision.Nothing decision) {
-    long currentVersion = decision.version();
-    log.info("Nothing changed with this sync");
-    return new SyncOutcome(NOTHING,currentVersion, true);
+    public SyncOutcome execute(SyncDecision.DoNothing decision) {
+    long localVersion = decision.localVersion();
+    log.info("Nothing to sync, local version is {}", localVersion);
+    return new SyncOutcome(NOTHING, localVersion, true);
     }
 }

@@ -3,6 +3,7 @@ package com.programacion2.catalogandsync.sync.application.usecases;
 
 import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogConsistencyPort;
 
+import com.programacion2.catalogandsync.sync.application.exception.SyncException;
 import com.programacion2.catalogandsync.sync.application.service.SyncPlanner;
 import com.programacion2.catalogandsync.sync.application.service.executors.IncrementalExecutor;
 import com.programacion2.catalogandsync.sync.application.service.executors.NothingExecutor;
@@ -30,8 +31,8 @@ public class SyncCatalogUseCaseImpl implements SyncCatalogUseCase {
         @Override
     public SyncOutcome sync() {
             // ledger → planner → fuente de datos → writePort → SyncOutcome
-            //Ledger work, its supposed to read versions and get a decision
-
+            //Ledger work, it's supposed to read versions and get a decision
+            try{
             Optional<Long> localVersion = versionLedgerPort.localVersion();
             long currentVersion = versionLedgerPort.currentVersion();
             long oldestAvailableVersion = versionLedgerPort.oldestAvailableVersion();
@@ -41,10 +42,13 @@ public class SyncCatalogUseCaseImpl implements SyncCatalogUseCase {
 
             SyncDecision decision = syncPlanner.decide(localVersion,currentVersion,oldestAvailableVersion,localStateVerifiable);
             return switch (decision) {
-                case SyncDecision.Nothing n        -> nothingExecutor.execute(n);
-                case SyncDecision.Snapshot s       -> snapshotExecutor.execute(s);
-                case SyncDecision.Incremental i    -> incrementalExecutor.execute(i);
+                case SyncDecision.DoNothing doNothing -> nothingExecutor.execute(doNothing);
+                case SyncDecision.TakeSnapshot takeSnapshot -> snapshotExecutor.execute(takeSnapshot);
+                case SyncDecision.ApplyIncremental applyIncremental -> incrementalExecutor.execute(applyIncremental);
             };
+        } catch (Exception e) {
+                throw new SyncException("Error in the sync process");
+            }
         }
 }
 

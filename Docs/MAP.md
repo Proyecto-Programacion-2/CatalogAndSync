@@ -6,14 +6,18 @@ Plan de desarrollo de ESTE repositorio, autocontenido. El mapa global del proyec
 - **Entradas necesarias para avanzar**: ningun otro repo te bloquea para arrancar. Necesitas la cuenta tecnica de la catedra (Fase 0) y, desde el hito de esquema, una base de datos PostgreSQL.
 - **Salidas que otros consumen de vos**: TurnosYReservas consume la agenda vigente del profesional (contrato interno, aca en Fase 3). KMPapp consume registro/login y busquedas (Fase 2).
 
+## Estado al 2026-10-25
+- HECHOS: 0.1, 0.2, 0.3, 1.1.
+- PARCIALES: 0.5 (config externalizada), 1.5 (versionado Redis).
+- DIFERIDO por decision: 0.6 (se mantiene `contextLoads()` rojo; el build de compilacion ya funciona).
+
 ## Decisiones abiertas (no asumir; consultar al usuario)
 | Decision | Bloquea | Referencia |
 | --- | --- | --- |
-| Herramienta de migraciones (Flyway/Liquibase) | H1.2 (esquema) | PS §3 |
 | Regla de baja fisica: IDs que no vienen en el snapshot | H1.4 | IR §7 |
 | Donde se persiste el `eventId` para dedup (tabla propia vs `alumnos:{gid}:*`) | H1.7 | IR §15.3, §18.1 |
 | `day_of_week` enum vs `varchar(9)`; criterio e indice de busqueda por nombre | Fase 2 | CU_2 §2.1 |
-| Que hacer con `CatalogandsyncApplicationTests.contextLoads()` (rompe el build verde) | H0.6 | — |
+| `CatalogandsyncApplicationTests.contextLoads()`: DIFERIDO 2026-10-25, se mantiene rojo por decision; resolver mas adelante | H0.6 | — |
 | Timeouts, backoff y limites de reintentos de la sync | H1.9 | ARQUITECTURA §4 |
 | Autenticacion interna hacia TurnosYReservas (JWT de usuario vs JWT tecnico) | Fase 3 | PS §9 |
 
@@ -22,11 +26,11 @@ Plan de desarrollo de ESTE repositorio, autocontenido. El mapa global del proyec
 | # | Hito | Criterio de salida |
 | --- | --- | --- |
 | 0.1 | **HECHO 2026-09-28.** Cuenta tecnica de catedra: `POST /api/student/register` a mano, una vez. Guardar `id_token` + bloque `integration` FUERA del repo. Si se pierde el JWT: nueva cuenta (IR §5.4) | `provisioningStatus: PROVISIONED` |
-| 0.2 | Decidir herramienta de migraciones | Decidida y registrada en `ARQUITECTURA.md` |
-| 0.3 | Higiene del repo: commitear el scaffold de JHipster, nunca `catalogandsync.zip` | `git status` limpio |
+| 0.2 | **HECHO 2026-10-25.** Herramienta de migraciones decidida: **Flyway**, registrada en `ARQUITECTURA.md` §3 | Decidida y registrada en `ARQUITECTURA.md` |
+| 0.3 | **HECHO 2026-10-25.** Higiene del repo: scaffold de JHipster y trabajo de sync commiteados; `catalogandsync.zip` nunca se trackea | `git status` limpio |
 | 0.4 | Docker Compose con PostgreSQL (DECIDIDO, cuando la sync lo necesite). Antes: entorno — grupo `docker` (`sudo usermod -aG docker $USER` + re-login), plugin Compose v2 (hoy solo `docker-compose` v1). Compose = SOLO PostgreSQL (IR §3) | Compose levanta; usuario y esquema `catalog` creados |
-| 0.5 | Config externalizada: `application.yaml` solo `${...}`; cero secretos | Arranca sin secretos logueados |
-| 0.6 | Build verde: resolver `contextLoads()` sin datasource | `./mvnw test` pasa |
+| 0.5 | PARCIAL: `application.yaml` sigue solo con logging; falta `spring.config.import`, binding de `integration` y `${...}` | Arranca sin secretos logueados |
+| 0.6 | **DIFERIDO 2026-10-25.** `contextLoads()` se mantiene rojo por decision. La compilacion ya funciona (Lombok con `<proc>full</proc>`) | `./mvnw test` pasa |
 
 Trampa: el cliente de catedra (REST/Redis/Kafka) NO se comparte con TurnosYReservas (repos separados, PS §13.1). Se escribe en cada backend.
 
@@ -36,11 +40,11 @@ Copia local SIEMPRE consistente con la version de la catedra, por snapshot, incr
 
 | # | Hito | Criterio de salida |
 | --- | --- | --- |
-| 1.1 | Logica pura `decidirSync(local, current, oldest)` → Snapshot / Incremental(desde V+1) / Nada. Casos: BD vacia → snapshot; `V < oldest` → snapshot (IR §18.2); `V >= current` → nada; `V < current` → incremental; estado no verificable → snapshot | Tests unitarios de todos los casos |
+| 1.1 | **HECHO 2026-10-25.** Logica pura `SyncPlanner.decide(local, current, oldest, verifiable)` → `TakeSnapshot` / `ApplyIncremental(V+1, current)` / `DoNothing`. Casos: BD vacia → snapshot; `V < oldest` → snapshot (IR §18.2); `V >= current` → nada; `V < current` → incremental; estado no verificable → snapshot | `SyncPlannerTest`: 9/9 tests |
 | 1.2 | Esquema local: `professional_category`, `professional`, `weekly_schedule`, `catalog_version` (CU_2 §2.1). PK = ID de catedra. Fila unica para `catalog_version`. Indice `(professional_id, day_of_week, enabled)` | Migraciones aplicadas sobre Postgres; esquema inspeccionado |
 | 1.3 | Cliente de catedra por puertos de salida: `GET /api/synchronization/snapshot` con JWT tecnico; deserializar las 3 colecciones | Snapshot crudo guardado; JSON deserializa sin perdidas |
 | 1.4 | Aplicar snapshot consistente: 3 colecciones + `snapshotVersion` en UNA transaccion (IR §7). Upsert por ID; `enabled=false` = baja logica. Idempotente | BD = snapshot; `local_version = snapshotVersion`; `last_sync_mode = SNAPSHOT` |
-| 1.5 | Versionado Redis: `catedra:sync:current-version` + `oldest-available-version` + `metadata`; solo lectura de `catedra:sync:*` | Test de discontinuidad con (3, 7, 4) |
+| 1.5 | PARCIAL: existen `VersionLedgerPort` y `VersionLedgerAdapter` (lectura local); `currentVersion()` / `oldestAvailableVersion()` aun lanzan `UnsupportedOperationException`. Falta el adaptador Redis de `catedra:sync:*` | Test de discontinuidad con (3, 7, 4) cubierto en planner; falta lectura real |
 | 1.6 | Incremental: `changes:{version}` → IDs afectados; resolver estado vigente en los 3 hashes; aplicar V+1..current en orden; version avanza solo si la unidad termino (IR §14.5). `changes:{v}` faltante → snapshot | De V a V+n en orden; `local_version = current` |
 | 1.7 | Consumidor `CatalogUpdated` (topic `catedra.catalog.{gid}`, key = `newVersion`). Kafka = notificacion, no fuente. Dedup por `eventId`. Offset DESPUES de persistir (IR §16): `enable-auto-commit=false` + ack manual | Version nueva aplicada; mismo `eventId` repetido no cambia nada |
 | 1.8 | Reconciliacion periodica: `local_version` vs `current-version` → aplicar atraso | Sin consumo Kafka, la tarea pone al dia |

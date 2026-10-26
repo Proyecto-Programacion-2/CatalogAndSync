@@ -19,20 +19,20 @@ public class SyncPlanner {
         and not local state broken.
          */
         if (!localStateVerifiable) {
-            return  new SyncDecision.Snapshot("Local_State_Not_Verifiable");
+            return  new SyncDecision.TakeSnapshot("Local_State_Not_Verifiable");
         }
         if (localVersion.isEmpty()) {
-            return  new SyncDecision.Snapshot("Empty_Local_Catalog");
+            return  new SyncDecision.TakeSnapshot("Empty_Local_Catalog");
         }
 
         long local = localVersion.get();
         if (local < oldestAvailableVersion) {
-            return new SyncDecision.Snapshot("Local_Version_Out_Of_Window");
+            return new SyncDecision.TakeSnapshot("Local_Version_Out_Of_Window");
         }
         if (local >= currentVersion) {
-            return new SyncDecision.Nothing(local);
+            return new SyncDecision.DoNothing(local);
         }
-        return new SyncDecision.Incremental(local +1, currentVersion);
+        return new SyncDecision.ApplyIncremental(local +1, currentVersion);
 
     }
 }

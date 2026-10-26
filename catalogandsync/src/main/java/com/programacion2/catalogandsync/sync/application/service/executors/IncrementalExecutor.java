@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class IncrementalExecutor {
-    public SyncOutcome execute(SyncDecision.Incremental decision){
+    public SyncOutcome execute(SyncDecision.ApplyIncremental decision){
         return null;
     }
 }

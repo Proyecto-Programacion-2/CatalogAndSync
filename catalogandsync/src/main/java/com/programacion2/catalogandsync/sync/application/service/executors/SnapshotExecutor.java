@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SnapshotExecutor {
-    public SyncOutcome execute(SyncDecision.Snapshot decision){
+    public SyncOutcome execute(SyncDecision.TakeSnapshot decision){
         return null;
     }
 }

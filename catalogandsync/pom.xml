@@ -103,6 +103,14 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<!-- JDK 23+ no ejecuta anotaciones implicitamente; Lombok lo necesita. -->
+					<proc>full</proc>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
