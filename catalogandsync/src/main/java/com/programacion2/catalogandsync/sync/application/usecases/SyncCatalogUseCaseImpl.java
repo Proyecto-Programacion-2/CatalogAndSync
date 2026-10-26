@@ -47,7 +47,7 @@ public class SyncCatalogUseCaseImpl implements SyncCatalogUseCase {
                 case SyncDecision.ApplyIncremental applyIncremental -> incrementalExecutor.execute(applyIncremental);
             };
         } catch (Exception e) {
-                throw new SyncException("Error in the sync process");
+                throw new SyncException("Error in the sync process", e);
             }
         }
 }
