@@ -1,0 +1,31 @@
+name: catalogandsync
+
+# Compose local: SOLO PostgreSQL (Kafka, Redis y la API son de la catedra, IR §3).
+# Las credenciales y la URL se leen del .env gitignored que vive en esta carpeta.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: catalogandsync-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      CATALOG_DB_USER: ${CATALOG_DB_USER}
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD}
+      TZ: UTC
+    ports:
+      # Solo loopback: la base local no se expone a la red.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - catalog_pgdata:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  catalog_pgdata:

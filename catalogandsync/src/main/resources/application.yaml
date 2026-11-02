@@ -1,6 +1,28 @@
 spring:
   application:
     name: catalogandsync
+  # El .env real vive en esta carpeta y esta gitignored. Se importa como properties:
+  # admite KEY=VALUE, comentarios con # y lineas en blanco (sin `export`).
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/catalogandsync}
+    username: ${CATALOG_DB_USER}
+    password: ${CATALOG_DB_PASSWORD}
+  flyway:
+    enabled: true
+    schemas: catalog
+    default-schema: catalog
+    # El esquema lo crea el bootstrap de Docker (dueno: catalog_app); Flyway solo crea tablas.
+    create-schemas: false
+    table: schema_version
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.default_schema: catalog
+
 logging:
   # Nivel de log general (root) y específicos por paquete
   level:
