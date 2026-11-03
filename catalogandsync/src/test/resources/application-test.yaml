@@ -1,0 +1,7 @@
+# Perfil `test`: misma instancia de PostgreSQL local, base separada de desarrollo.
+# La base la crea docker/init/03-test-database.sh al inicializar el volumen
+# (o a mano una vez sobre un volumen existente).
+# Credenciales: se heredan de application.yaml / .env; aca solo cambia la URL.
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/catalogandsync_test}
