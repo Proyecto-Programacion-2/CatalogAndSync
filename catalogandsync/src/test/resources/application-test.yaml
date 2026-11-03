@@ -5,3 +5,12 @@
 spring:
   datasource:
     url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/catalogandsync_test}
+
+# Valores placeholder para que el bean del adaptador REST se construya sin
+# hacer ninguna request. No se emula a la catedra: el puerto real no se invoca
+# en los tests.
+catedra:
+  base-url: http://localhost:1
+  jwt: test-token
+  connect-timeout: 100ms
+  read-timeout: 100ms

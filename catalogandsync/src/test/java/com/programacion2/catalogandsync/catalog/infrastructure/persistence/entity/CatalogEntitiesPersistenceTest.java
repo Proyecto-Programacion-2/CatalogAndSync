@@ -1,13 +1,11 @@
 package com.programacion2.catalogandsync.catalog.infrastructure.persistence.entity;
 
 import com.programacion2.catalogandsync.catalog.domain.model.DayOfWeek;
-import com.programacion2.catalogandsync.sync.domain.ports.out.SnapshotSourcePort;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -31,9 +29,6 @@ class CatalogEntitiesPersistenceTest {
 
     @Autowired
     private EntityManager entityManager;
-
-    @MockitoBean
-    private SnapshotSourcePort snapshotSourcePort;
 
     @Test
     void enumDayOfWeekSurvivesRoundTrip() {

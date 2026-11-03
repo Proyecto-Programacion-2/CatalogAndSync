@@ -9,14 +9,12 @@ import com.programacion2.catalogandsync.catalog.infrastructure.persistence.entit
 import com.programacion2.catalogandsync.catalog.infrastructure.persistence.entity.ProfessionalEntity;
 import com.programacion2.catalogandsync.catalog.infrastructure.persistence.entity.WeeklyScheduleEntity;
 import com.programacion2.catalogandsync.sync.domain.model.SyncMode;
-import com.programacion2.catalogandsync.sync.domain.ports.out.SnapshotSourcePort;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,9 +51,6 @@ class JpaCatalogWriteAdapterTest {
 
     @Autowired
     private PlatformTransactionManager transactionManager;
-
-    @MockitoBean
-    private SnapshotSourcePort snapshotSourcePort;
 
     @Test
     void appliesVersionFromEmptyDatabase() {
