@@ -1,6 +1,5 @@
 package com.programacion2.catalogandsync;
 
-import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogWritePort;
 import com.programacion2.catalogandsync.sync.domain.ports.out.SnapshotSourcePort;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -12,10 +11,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
  * Usa el perfil `test` para apuntar a `catalogandsync_test` y no tocar los datos
  * de desarrollo.
  * <p>
- * Hasta que existan los adaptadores reales (REST de la catedra y JPA de escritura,
- * hitos 1.3 y 1.4) los puertos de salida se satisfacen con dobles de nuestras
- * propias interfaces. No se emula a la catedra: no hay respuestas falsas ni datos
- * de catalogo, solo el bean necesario para cablear el contexto.
+ * Hasta que exista el adaptador REST de la catedra (hito 1.3), `SnapshotSourcePort`
+ * se satisface con un doble de nuestra propia interfaz. No se emula a la catedra:
+ * no hay respuestas falsas ni datos de catalogo, solo el bean necesario para
+ * cablear el contexto. `CatalogWritePort` ya lo implementa `JpaCatalogWriteAdapter`.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -23,9 +22,6 @@ class CatalogandsyncApplicationTests {
 
 	@MockitoBean
 	private SnapshotSourcePort snapshotSourcePort;
-
-	@MockitoBean
-	private CatalogWritePort catalogWritePort;
 
 	@Test
 	void contextLoads() {

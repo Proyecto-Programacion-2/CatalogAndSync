@@ -1,7 +1,6 @@
 package com.programacion2.catalogandsync.catalog.infrastructure.persistence.entity;
 
 import com.programacion2.catalogandsync.catalog.domain.model.DayOfWeek;
-import com.programacion2.catalogandsync.catalog.domain.ports.out.CatalogWritePort;
 import com.programacion2.catalogandsync.sync.domain.ports.out.SnapshotSourcePort;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
@@ -35,9 +34,6 @@ class CatalogEntitiesPersistenceTest {
 
     @MockitoBean
     private SnapshotSourcePort snapshotSourcePort;
-
-    @MockitoBean
-    private CatalogWritePort catalogWritePort;
 
     @Test
     void enumDayOfWeekSurvivesRoundTrip() {
