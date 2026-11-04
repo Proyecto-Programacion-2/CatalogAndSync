@@ -6,11 +6,26 @@ spring:
   datasource:
     url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/catalogandsync_test}
 
-# Valores placeholder para que el bean del adaptador REST se construya sin
-# hacer ninguna request. No se emula a la catedra: el puerto real no se invoca
-# en los tests.
+# Valores placeholder para que los beans del cliente de la catedra se
+# construyan sin hacer requests ni abrir conexiones. No se emula a la catedra:
+# ningun test invoca los puertos reales.
 catedra:
   base-url: http://localhost:1
   jwt: test-token
   connect-timeout: 100ms
   read-timeout: 100ms
+integration:
+  redis-host: localhost
+  redis-port: 1
+  redis-username: test
+  redis-password: test
+
+# El ciclo periodico se apaga en tests: no debe disparar sync ni tocar Redis.
+sync:
+  redis:
+    connect-timeout: 200ms
+    command-timeout: 200ms
+  scheduler:
+    enabled: false
+    fixed-delay-ms: 900000
+    initial-delay-ms: 0

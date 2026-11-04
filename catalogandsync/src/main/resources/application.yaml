@@ -31,6 +31,38 @@ catedra:
   connect-timeout: 2s
   read-timeout: 30s
 
+# Bloque `integration` de la cuenta tecnica (IR §5.1). Por ahora se bindea el
+# subconjunto Redis; Kafka se agrega con su consumidor (hito 1.7).
+integration:
+  redis-host: ${CATEDRA_REDIS_HOST}
+  redis-port: ${CATEDRA_REDIS_PORT}
+  redis-username: ${CATEDRA_REDIS_USERNAME}
+  redis-password: ${CATEDRA_REDIS_PASSWORD}
+
+# Ajustes del slice sync: timeouts del cliente Redis (decididos 2026-11-02) y
+# cadencia del ciclo periodico de reconciliacion (hito 1.8).
+sync:
+  redis:
+    connect-timeout: 2s
+    # Ajustado 1s -> 2s por evidencia del 2026-11-03: en esta red el handshake de
+    # Lettuce (TCP + AUTH + HELLO) tarda mas de 1s y el ciclo fallaba con
+    # `RedisCommandTimeoutException: Connection initialization timed out`.
+    # Con 2s el primer ciclo tarda ~2,3s y los siguientes ~0,5s.
+    command-timeout: 2s
+  # Reintentos fijos (decididos 2026-11-02): 3 intentos totales, 2s entre
+  # intentos. Solo timeout/conexion/5xx; nunca 4xx ni errores de contrato.
+  retry:
+    max-attempts: 3
+    delay: 2s
+  scheduler:
+    enabled: true
+    fixed-delay-ms: 900000   # 15 minutos
+    initial-delay-ms: 0
+  status:
+    # 2x la cadencia del scheduler: si el ultimo ciclo exitoso es mas viejo,
+    # GET /api/catalog/sync-status marca stale=true.
+    stale-after-ms: 1800000
+
 logging:
   # Nivel de log general (root) y específicos por paquete
   level:
