@@ -1,6 +1,9 @@
 package com.programacion2.catalogandsync.sync.infrastructure.rest.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.ProfessionalCategoryResponse;
+import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.ProfessionalResponse;
+import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.WeeklyScheduleResponse;
 
 import java.time.Instant;
 import java.util.List;

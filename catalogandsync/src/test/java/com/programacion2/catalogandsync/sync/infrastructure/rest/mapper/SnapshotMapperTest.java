@@ -6,10 +6,10 @@ import com.programacion2.catalogandsync.catalog.domain.model.ProfessionalCategor
 import com.programacion2.catalogandsync.catalog.domain.model.WeeklySchedule;
 import com.programacion2.catalogandsync.sync.application.exception.SnapshotMappingException;
 import com.programacion2.catalogandsync.sync.domain.model.Snapshot;
-import com.programacion2.catalogandsync.sync.infrastructure.rest.dto.ProfessionalCategoryResponse;
-import com.programacion2.catalogandsync.sync.infrastructure.rest.dto.ProfessionalResponse;
+import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.ProfessionalCategoryResponse;
+import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.ProfessionalResponse;
+import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.WeeklyScheduleResponse;
 import com.programacion2.catalogandsync.sync.infrastructure.rest.dto.SnapshotResponse;
-import com.programacion2.catalogandsync.sync.infrastructure.rest.dto.WeeklyScheduleResponse;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

@@ -6,6 +6,7 @@ import com.programacion2.catalogandsync.sync.application.service.SyncPlanner;
 import com.programacion2.catalogandsync.sync.application.service.executors.IncrementalExecutor;
 import com.programacion2.catalogandsync.sync.application.service.executors.NothingExecutor;
 import com.programacion2.catalogandsync.sync.application.service.executors.SnapshotExecutor;
+import com.programacion2.catalogandsync.sync.domain.model.IncrementalResult;
 import com.programacion2.catalogandsync.sync.domain.model.SyncDecision;
 import com.programacion2.catalogandsync.sync.domain.model.SyncMode;
 import com.programacion2.catalogandsync.sync.domain.model.SyncOutcome;
@@ -106,13 +107,42 @@ class SyncCatalogUseCaseImplTest {
         when(versionLedgerPort.oldestAvailableVersion()).thenReturn(oldestVersion);
         when(catalogConsistencyPort.isStateVerifiable(localVersion)).thenReturn(true);
         when(syncPlanner.decide(localVersion, currentVersion, oldestVersion, true)).thenReturn(decision);
-        when(incrementalExecutor.execute(decision)).thenReturn(expectedOutcome);
+        when(incrementalExecutor.execute(decision))
+                .thenReturn(new IncrementalResult.Applied(expectedOutcome));
 
         SyncOutcome outcome = syncCatalogUseCase.sync();
 
         assertEquals(expectedOutcome, outcome);
         verify(incrementalExecutor).execute(decision);
         verifyNoInteractions(nothingExecutor, snapshotExecutor);
+    }
+
+    @Test
+    void whenIncrementalNeedsSnapshot_shouldExecuteSnapshotWithTheReportedReason() {
+        Optional<Long> localVersion = Optional.of(7L);
+        long currentVersion = 10L;
+        long oldestVersion = 5L;
+        SyncDecision.ApplyIncremental incrementalDecision = new SyncDecision.ApplyIncremental(8L, 10L);
+        String reason = "INCREMENTAL_HISTORY_MISSING at version 9";
+        SyncDecision.TakeSnapshot snapshotDecision = new SyncDecision.TakeSnapshot(reason);
+        SyncOutcome expectedOutcome = new SyncOutcome(SyncMode.SNAPSHOT, 10L, false);
+
+        when(versionLedgerPort.localVersion()).thenReturn(localVersion);
+        when(versionLedgerPort.currentVersion()).thenReturn(currentVersion);
+        when(versionLedgerPort.oldestAvailableVersion()).thenReturn(oldestVersion);
+        when(catalogConsistencyPort.isStateVerifiable(localVersion)).thenReturn(true);
+        when(syncPlanner.decide(localVersion, currentVersion, oldestVersion, true))
+                .thenReturn(incrementalDecision);
+        when(incrementalExecutor.execute(incrementalDecision))
+                .thenReturn(new IncrementalResult.NeedsSnapshot(reason));
+        when(snapshotExecutor.execute(snapshotDecision)).thenReturn(expectedOutcome);
+
+        SyncOutcome outcome = syncCatalogUseCase.sync();
+
+        assertEquals(expectedOutcome, outcome);
+        verify(incrementalExecutor).execute(incrementalDecision);
+        verify(snapshotExecutor).execute(snapshotDecision);
+        verifyNoInteractions(nothingExecutor);
     }
 
     @Test

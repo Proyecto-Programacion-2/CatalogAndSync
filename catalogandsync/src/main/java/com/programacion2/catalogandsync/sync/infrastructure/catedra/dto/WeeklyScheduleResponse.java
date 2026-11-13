@@ -1,4 +1,4 @@
-package com.programacion2.catalogandsync.sync.infrastructure.rest.dto;
+package com.programacion2.catalogandsync.sync.infrastructure.catedra.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

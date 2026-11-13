@@ -23,10 +23,15 @@ import java.util.List;
  * Snapshot e incremental usan este adaptador para que los datos y la version
  * avancen en la misma transaccion.
  * <p>
- * Orden de escritura: upsert de categorias -> profesionales -> horarios, y
- * luego bajas logicas en orden inverso. Las bajas cascadean: una categoria
- * deshabilitada deshabilita sus profesionales, y un profesional deshabilitado
- * deshabilita sus horarios.
+ * Regla del snapshot: upsert de categorias -> profesionales -> horarios y,
+ * despues, baja logica de los IDs que no vinieron en el snapshot. No se
+ * propaga el estado de un padre a sus hijos: el catalogo local es un espejo
+ * de la fuente y la vigencia (categoria/profesional habilitado) se resuelve
+ * en lectura.
+ * <p>
+ * Regla del incremental: solo se upsertea el delta que trajo la catedra y se
+ * avanza la version. No se deshabilitan IDs ausentes, porque un cambio no
+ * informa sobre el resto del catalogo.
  */
 @Slf4j
 @Component
@@ -42,9 +47,7 @@ public class JpaCatalogWriteAdapter implements CatalogWritePort {
     public void applyVersion(long version, SyncMode mode, List<ProfessionalCategory> categories,
                              List<Professional> professionals, List<WeeklySchedule> schedules) {
 
-        categories.forEach(category -> entityManager.merge(toEntity(category)));
-        professionals.forEach(professional -> entityManager.merge(toEntity(professional)));
-        schedules.forEach(schedule -> entityManager.merge(toEntity(schedule)));
+        upsert(categories, professionals, schedules);
 
         // Necesario para que las bajas logicas vean lo recien insertado/actualizado.
         entityManager.flush();
@@ -69,6 +72,35 @@ public class JpaCatalogWriteAdapter implements CatalogWritePort {
                 disabledSchedules);
     }
 
+    @Override
+    @Transactional
+    public void applyChanges(long version, SyncMode mode, List<ProfessionalCategory> categories,
+                             List<Professional> professionals, List<WeeklySchedule> schedules) {
+
+        upsert(categories, professionals, schedules);
+
+        // Los cambios son un delta: no se deshabilitan IDs ausentes (eso es
+        // exclusivo del snapshot). Solo se escriben las filas que vinieron.
+        entityManager.flush();
+        entityManager.clear();
+
+        updateCatalogVersion(version, mode);
+
+        log.info("Applied incremental version {} ({}): categories={}, professionals={}, schedules={}",
+                version,
+                mode,
+                categories.size(),
+                professionals.size(),
+                schedules.size());
+    }
+
+    private void upsert(List<ProfessionalCategory> categories, List<Professional> professionals,
+                        List<WeeklySchedule> schedules) {
+        categories.forEach(category -> entityManager.merge(toEntity(category)));
+        professionals.forEach(professional -> entityManager.merge(toEntity(professional)));
+        schedules.forEach(schedule -> entityManager.merge(toEntity(schedule)));
+    }
+
     private int disableMissingCategories(List<ProfessionalCategory> categories) {
         if (categories.isEmpty()) {
             return entityManager.createQuery(
@@ -84,35 +116,39 @@ public class JpaCatalogWriteAdapter implements CatalogWritePort {
     }
 
     /**
-     * Deshabilita los profesionales ausentes y los de categorias deshabilitadas.
-     * La categoria ya se actualizo, por eso la subconsulta ve el estado final.
+     * Deshabilita solo los profesionales ausentes del snapshot. No mira el
+     * estado de su categoria: un profesional presente conserva el {@code enabled}
+     * que trajo la catedra aunque su categoria este deshabilitada.
      */
     private int disableProfessionals(List<Professional> professionals) {
-        String base = "update ProfessionalEntity p set p.enabled = false where p.enabled = true " +
-                "and (p.categoryId in (select c.id from ProfessionalCategoryEntity c where c.enabled = false)";
-
         if (professionals.isEmpty()) {
-            return entityManager.createQuery(base + ")").executeUpdate();
+            return entityManager.createQuery(
+                            "update ProfessionalEntity p set p.enabled = false where p.enabled = true")
+                    .executeUpdate();
         }
 
-        return entityManager.createQuery(base + " or p.id not in :ids)")
+        return entityManager.createQuery(
+                        "update ProfessionalEntity p set p.enabled = false " +
+                                "where p.enabled = true and p.id not in :ids")
                 .setParameter("ids", professionals.stream().map(Professional::id).toList())
                 .executeUpdate();
     }
 
     /**
-     * Deshabilita los horarios ausentes y los de profesionales deshabilitados.
-     * El profesional ya se actualizo, por eso la subconsulta ve el estado final.
+     * Deshabilita solo los horarios ausentes del snapshot. No mira el estado de
+     * su profesional: un horario presente conserva el {@code enabled} de la
+     * catedra aunque su profesional este deshabilitado.
      */
     private int disableSchedules(List<WeeklySchedule> schedules) {
-        String base = "update WeeklyScheduleEntity s set s.enabled = false where s.enabled = true " +
-                "and (s.professionalId in (select p.id from ProfessionalEntity p where p.enabled = false)";
-
         if (schedules.isEmpty()) {
-            return entityManager.createQuery(base + ")").executeUpdate();
+            return entityManager.createQuery(
+                            "update WeeklyScheduleEntity s set s.enabled = false where s.enabled = true")
+                    .executeUpdate();
         }
 
-        return entityManager.createQuery(base + " or s.id not in :ids)")
+        return entityManager.createQuery(
+                        "update WeeklyScheduleEntity s set s.enabled = false " +
+                                "where s.enabled = true and s.id not in :ids")
                 .setParameter("ids", schedules.stream().map(WeeklySchedule::id).toList())
                 .executeUpdate();
     }

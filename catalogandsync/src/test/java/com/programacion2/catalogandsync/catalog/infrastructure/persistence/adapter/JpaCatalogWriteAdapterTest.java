@@ -33,7 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifica el contrato de escritura sobre la base de test: upsert por ID,
- * baja logica en cascada y avance de version en la misma transaccion.
+ * baja logica de los IDs ausentes del snapshot, delta incremental sin bajas
+ * implicitas y avance de version en la misma transaccion. El catalogo es un
+ * espejo: el estado de un padre no se propaga a sus hijos.
  */
 @SpringBootTest
 @ActiveProfiles("test")
@@ -82,7 +84,7 @@ class JpaCatalogWriteAdapterTest {
     }
 
     @Test
-    void updatesExistingRowsAndDisablesMissingIdsWithCascade() {
+    void updatesExistingRowsAndDisablesMissingIds() {
         adapter.applyVersion(
                 7,
                 SyncMode.SNAPSHOT,
@@ -109,7 +111,7 @@ class JpaCatalogWriteAdapterTest {
         assertNotNull(missingCategory);
         assertFalse(missingCategory.isEnabled());
 
-        // Profesional ausente y profesional de categoria deshabilitada.
+        // Profesional y horario ausentes: baja logica.
         assertFalse(professional(20).isEnabled());
         assertFalse(schedule(200).isEnabled());
 
@@ -122,7 +124,7 @@ class JpaCatalogWriteAdapterTest {
     }
 
     @Test
-    void disablesDependentsWhenParentComesDisabled() {
+    void keepsDependentFlagsFromSourceWhenParentIsDisabled() {
         adapter.applyVersion(
                 7,
                 SyncMode.SNAPSHOT,
@@ -131,6 +133,8 @@ class JpaCatalogWriteAdapterTest {
                 List.of(schedule(100, 10, DayOfWeek.MONDAY, true))
         );
 
+        // La categoria se deshabilita, pero sus hijos siguen presentes y
+        // habilitados en la fuente: el catalogo local no inventa la baja.
         adapter.applyVersion(
                 8,
                 SyncMode.SNAPSHOT,
@@ -140,8 +144,8 @@ class JpaCatalogWriteAdapterTest {
         );
 
         assertFalse(category(1).isEnabled());
-        assertFalse(professional(10).isEnabled());
-        assertFalse(schedule(100).isEnabled());
+        assertTrue(professional(10).isEnabled());
+        assertTrue(schedule(100).isEnabled());
     }
 
     @Test
@@ -177,6 +181,89 @@ class JpaCatalogWriteAdapterTest {
         assertThrows(PersistenceException.class, () -> adapter.applyVersion(
                 9,
                 SyncMode.SNAPSHOT,
+                List.of(category(1, "Cardiologia", true)),
+                List.of(professional(10, 999, "Ana", true)),
+                List.of(schedule(100, 10, DayOfWeek.MONDAY, true))
+        ));
+
+        transaction.executeWithoutResult(status -> {
+            assertNull(entityManager.find(ProfessionalCategoryEntity.class, 1L));
+            assertNull(entityManager.find(ProfessionalEntity.class, 10L));
+            assertNull(entityManager.find(WeeklyScheduleEntity.class, 100L));
+            assertNull(entityManager.find(CatalogVersionEntity.class, (short) 1));
+        });
+    }
+
+    @Test
+    void applyChangesUpsertsDeltaWithoutTouchingRowsOutsideIt() {
+        adapter.applyVersion(
+                7,
+                SyncMode.SNAPSHOT,
+                List.of(category(1, "Cardiologia", true), category(2, "Dermatologia", true)),
+                List.of(professional(10, 1, "Ana", true), professional(20, 2, "Beto", true)),
+                List.of(schedule(100, 10, DayOfWeek.MONDAY, true), schedule(200, 20, DayOfWeek.TUESDAY, true))
+        );
+
+        // Delta de una sola version: actualiza un profesional y no menciona al resto.
+        adapter.applyChanges(
+                8,
+                SyncMode.INCREMENTAL,
+                List.of(),
+                List.of(professional(10, 1, "Ana Maria", false)),
+                List.of()
+        );
+
+        assertEquals("Ana Maria", professional(10).getFirstName());
+        assertFalse(professional(10).isEnabled());
+
+        // Los IDs fuera del delta conservan su estado: un delta no da de baja.
+        assertEquals("Dermatologia", category(2).getName());
+        assertTrue(category(2).isEnabled());
+        assertTrue(professional(20).isEnabled());
+        assertTrue(schedule(200).isEnabled());
+        assertTrue(schedule(100).isEnabled());
+
+        CatalogVersionEntity version = entityManager.find(CatalogVersionEntity.class, (short) 1);
+        assertEquals(8L, version.getLocalVersion());
+        assertEquals("INCREMENTAL", version.getLastSyncMode());
+    }
+
+    @Test
+    void applyChangesWithEmptyDeltaStillAdvancesVersion() {
+        adapter.applyVersion(
+                7,
+                SyncMode.SNAPSHOT,
+                List.of(category(1, "Cardiologia", true)),
+                List.of(professional(10, 1, "Ana", true)),
+                List.of(schedule(100, 10, DayOfWeek.MONDAY, true))
+        );
+
+        adapter.applyChanges(8, SyncMode.INCREMENTAL, List.of(), List.of(), List.of());
+
+        assertTrue(category(1).isEnabled());
+        assertTrue(professional(10).isEnabled());
+        assertTrue(schedule(100).isEnabled());
+
+        CatalogVersionEntity version = entityManager.find(CatalogVersionEntity.class, (short) 1);
+        assertEquals(8L, version.getLocalVersion());
+        assertEquals("INCREMENTAL", version.getLastSyncMode());
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void applyChangesRollsBackTheWholeUnitOfWorkWhenOneRowFails() {
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.executeWithoutResult(status -> {
+            entityManager.createQuery("delete from WeeklyScheduleEntity").executeUpdate();
+            entityManager.createQuery("delete from ProfessionalEntity").executeUpdate();
+            entityManager.createQuery("delete from ProfessionalCategoryEntity").executeUpdate();
+            entityManager.createQuery("delete from CatalogVersionEntity").executeUpdate();
+        });
+
+        // El delta referencia una categoria inexistente: la FK falla al hacer flush.
+        assertThrows(PersistenceException.class, () -> adapter.applyChanges(
+                9,
+                SyncMode.INCREMENTAL,
                 List.of(category(1, "Cardiologia", true)),
                 List.of(professional(10, 999, "Ana", true)),
                 List.of(schedule(100, 10, DayOfWeek.MONDAY, true))

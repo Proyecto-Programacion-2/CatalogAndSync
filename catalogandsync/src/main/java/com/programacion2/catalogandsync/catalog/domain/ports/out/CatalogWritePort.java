@@ -5,9 +5,12 @@ import com.programacion2.catalogandsync.catalog.domain.model.ProfessionalCategor
 import com.programacion2.catalogandsync.catalog.domain.model.WeeklySchedule;
 import com.programacion2.catalogandsync.sync.domain.model.SyncMode;
 
+
 import java.util.List;
 
 public interface CatalogWritePort {
     void applyVersion(long version, SyncMode mode, List<ProfessionalCategory> categories,
+                      List<Professional> professionals, List<WeeklySchedule> schedules);
+    void applyChanges(long version, SyncMode mode, List<ProfessionalCategory> categories,
                       List<Professional> professionals, List<WeeklySchedule> schedules);
 }
