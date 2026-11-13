@@ -2,7 +2,9 @@ package com.programacion2.catalogandsync.sync.infrastructure.catedra.mapper;
 
 import com.programacion2.catalogandsync.sync.application.exception.CatedraContractException;
 import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.IncrementalChangesResponse;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
@@ -12,7 +14,13 @@ import java.util.List;
  * Es puro y estatico: se testea sin Redis. Rechaza una version distinta de la
  * pedida, un {@code changes} ausente, una coleccion {@code null} y cualquier ID
  * nulo o no positivo. Un array vacio es valido: la version no cambia entidades.
+ * <p>
+ * Los IDs repetidos dentro de una misma coleccion se colapsan preservando el
+ * orden de primera aparicion. No se rechazan: un duplicado no es ambiguo (mismo
+ * ID, misma fila), pero hidratarlo dos veces haria dos {@code HGET} y permitiria
+ * leer dos estados distintos de la misma entidad dentro de la misma version.
  */
+@Slf4j
 public final class IncrementalChangeMapper {
 
     private IncrementalChangeMapper() {
@@ -50,15 +58,21 @@ public final class IncrementalChangeMapper {
             throw new CatedraContractException("Catedra incremental changes " + version
                     + " is missing the required collection '" + field + "'");
         }
-        return ids.stream()
-                .map(id -> {
-                    if (id == null || id <= 0) {
-                        throw new CatedraContractException("Catedra incremental changes " + version
-                                + " has an invalid id in '" + field + "': " + id);
-                    }
-                    return id;
-                })
-                .toList();
+
+        LinkedHashSet<Long> unique = new LinkedHashSet<>(ids.size());
+        for (Long id : ids) {
+            if (id == null || id <= 0) {
+                throw new CatedraContractException("Catedra incremental changes " + version
+                        + " has an invalid id in '" + field + "': " + id);
+            }
+            unique.add(id);
+        }
+
+        if (unique.size() != ids.size()) {
+            log.debug("Catedra incremental changes {} had {} duplicate id(s) in '{}'; they were collapsed",
+                    version, ids.size() - unique.size(), field);
+        }
+        return List.copyOf(unique);
     }
 
     /**

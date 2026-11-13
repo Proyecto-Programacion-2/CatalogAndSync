@@ -6,6 +6,7 @@ import com.programacion2.catalogandsync.catalog.domain.model.ProfessionalCategor
 import com.programacion2.catalogandsync.catalog.domain.model.WeeklySchedule;
 import com.programacion2.catalogandsync.sync.application.exception.SnapshotMappingException;
 import com.programacion2.catalogandsync.sync.domain.model.Snapshot;
+import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.CatedraDayOfWeek;
 import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.ProfessionalCategoryResponse;
 import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.ProfessionalResponse;
 import com.programacion2.catalogandsync.sync.infrastructure.catedra.dto.WeeklyScheduleResponse;
@@ -42,7 +43,7 @@ class SnapshotMapperTest {
                 List.of(new ProfessionalResponse(
                         15L, 1L, "Ana", "Gomez", true, CREATED_AT, UPDATED_AT)),
                 List.of(new WeeklyScheduleResponse(
-                        21L, 15L, "MONDAY", LocalTime.of(9, 0), LocalTime.of(12, 0), 30,
+                        21L, 15L, CatedraDayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(12, 0), 30,
                         true, CREATED_AT, UPDATED_AT))
         );
 
@@ -114,9 +115,12 @@ class SnapshotMapperTest {
     }
 
     @Test
-    void rejectsUnknownDayOfWeek() {
+    void rejectsNullDayOfWeek() {
+        // Un dia desconocido ya no llega hasta aca: Jackson lo rechaza en la
+        // deserializacion (WeeklyScheduleResponseJsonTest). El sobre del mapper
+        // sigue rechazando el caso ausente.
         WeeklyScheduleResponse schedule = new WeeklyScheduleResponse(
-                21L, 15L, "FUNDAY", LocalTime.of(9, 0), LocalTime.of(12, 0), 30, true, CREATED_AT, UPDATED_AT);
+                21L, 15L, null, LocalTime.of(9, 0), LocalTime.of(12, 0), 30, true, CREATED_AT, UPDATED_AT);
 
         assertThrows(SnapshotMappingException.class,
                 () -> mapper.toDomain(snapshot(1L, List.of(), List.of(professional()), List.of(schedule))));

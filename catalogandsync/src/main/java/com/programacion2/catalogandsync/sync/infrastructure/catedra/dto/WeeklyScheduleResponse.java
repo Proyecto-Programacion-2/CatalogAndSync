@@ -9,7 +9,7 @@ import java.time.LocalTime;
 public record WeeklyScheduleResponse(
         Long id,
         Long professionalId,
-        String dayOfWeek,
+        CatedraDayOfWeek dayOfWeek,
         LocalTime startTime,
         LocalTime endTime,
         Integer slotDurationMinutes,

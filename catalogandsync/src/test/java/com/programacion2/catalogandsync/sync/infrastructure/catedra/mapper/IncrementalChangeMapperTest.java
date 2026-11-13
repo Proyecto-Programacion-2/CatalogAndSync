@@ -83,6 +83,23 @@ class IncrementalChangeMapperTest {
                 () -> IncrementalChangeMapper.toIds(response(7L, List.of(), List.of(), List.of(-3L)), 7L));
     }
 
+    @Test
+    void collapsesDuplicateIdsPreservingFirstAppearance() {
+        IncrementalChangeIds ids = IncrementalChangeMapper.toIds(
+                response(7L, List.of(1L, 2L, 1L), List.of(15L, 15L), List.of(21L)), 7L);
+
+        assertEquals(List.of(1L, 2L), ids.categoryIds());
+        assertEquals(List.of(15L), ids.professionalIds());
+        assertEquals(List.of(21L), ids.scheduleIds());
+    }
+
+    @Test
+    void duplicatesDoNotBypassValidation() {
+        assertThrows(CatedraContractException.class,
+                () -> IncrementalChangeMapper.toIds(
+                        response(7L, Arrays.asList(1L, null, 1L), List.of(), List.of()), 7L));
+    }
+
     private static IncrementalChangesResponse response(
             Long version, List<Long> categories, List<Long> professionals, List<Long> schedules) {
         return new IncrementalChangesResponse(version, changes(categories, professionals, schedules));
