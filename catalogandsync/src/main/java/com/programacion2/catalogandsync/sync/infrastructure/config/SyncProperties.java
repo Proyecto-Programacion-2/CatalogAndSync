@@ -3,6 +3,7 @@ package com.programacion2.catalogandsync.sync.infrastructure.config;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -12,7 +13,7 @@ import java.time.Duration;
 /**
  * Ajustes propios del slice {@code sync}: timeouts del cliente Redis de la
  * catedra (decididos 2026-11-02), politica de reintentos, cadencia del ciclo
- * periodico y umbral de estado obsoleto.
+ * periodico, umbral de estado obsoleto y consumidor Kafka (hito 1.7).
  */
 @Validated
 @ConfigurationProperties(prefix = "sync")
@@ -20,7 +21,8 @@ public record SyncProperties(
         @Valid @NotNull Redis redis,
         @Valid @NotNull Retry retry,
         @Valid @NotNull Scheduler scheduler,
-        @Valid @NotNull Status status
+        @Valid @NotNull Status status,
+        @Valid @NotNull Kafka kafka
 ) {
 
     public record Redis(
@@ -57,6 +59,21 @@ public record SyncProperties(
      */
     public record Status(
             @Positive long staleAfterMs
+    ) {
+    }
+
+    /**
+     * Consumidor {@code CatalogUpdated} (hito 1.7). {@code enabled=false} lo
+     * apaga por completo: el perfil {@code test} lo usa para que ningun test
+     * abra una conexion a Kafka. Con {@code maxPollRecords=1} el peor caso de
+     * un ciclo (snapshot 30 s x 3 intentos + estado, ~120 s) entra comodo en
+     * {@code maxPollIntervalMs}.
+     */
+    public record Kafka(
+            boolean enabled,
+            @Min(1) int maxPollRecords,
+            @Positive int maxPollIntervalMs,
+            @Pattern(regexp = "earliest|latest") String autoOffsetReset
     ) {
     }
 }

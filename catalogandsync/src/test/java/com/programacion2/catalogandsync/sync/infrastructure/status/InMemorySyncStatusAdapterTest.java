@@ -63,6 +63,6 @@ class InMemorySyncStatusAdapterTest {
 
     private static InMemorySyncStatusAdapter adapter(long staleAfterMs) {
         return new InMemorySyncStatusAdapter(new SyncProperties(
-                null, null, null, new SyncProperties.Status(staleAfterMs)));
+                null, null, null, new SyncProperties.Status(staleAfterMs), null));
     }
 }

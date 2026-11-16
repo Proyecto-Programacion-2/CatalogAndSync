@@ -31,13 +31,17 @@ catedra:
   connect-timeout: 2s
   read-timeout: 30s
 
-# Bloque `integration` de la cuenta tecnica (IR §5.1). Por ahora se bindea el
-# subconjunto Redis; Kafka se agrega con su consumidor (hito 1.7).
+# Bloque `integration` de la cuenta tecnica (IR §5.1). Se bindea el subconjunto
+# que usa este backend: Redis y el topico del catalogo de Kafka. El broker real
+# no pide SASL/TLS (verificado 2026-11-13 con Metadata/Fetch sin credenciales).
 integration:
   redis-host: ${CATEDRA_REDIS_HOST}
   redis-port: ${CATEDRA_REDIS_PORT}
   redis-username: ${CATEDRA_REDIS_USERNAME}
   redis-password: ${CATEDRA_REDIS_PASSWORD}
+  kafka-bootstrap-servers: ${CATEDRA_KAFKA_BOOTSTRAP_SERVERS}
+  kafka-consumer-group-id: ${CATEDRA_KAFKA_CONSUMER_GROUP_ID}
+  kafka-catalog-topic: ${CATEDRA_KAFKA_CATALOG_TOPIC}
 
 # Ajustes del slice sync: timeouts del cliente Redis (decididos 2026-11-02) y
 # cadencia del ciclo periodico de reconciliacion (hito 1.8).
@@ -62,6 +66,16 @@ sync:
     # 2x la cadencia del scheduler: si el ultimo ciclo exitoso es mas viejo,
     # GET /api/catalog/sync-status marca stale=true.
     stale-after-ms: 1800000
+  # Consumidor Kafka `CatalogUpdated` (hito 1.7). El evento solo adelanta el
+  # disparo: el rango lo decide el planner leyendo Redis. Un ciclo corre en el
+  # hilo de poll; con 1 registro por poll el peor caso (~120 s) entra comodo en
+  # max-poll-interval-ms. offset-reset=latest: el estado lo fijan el ledger y el
+  # ciclo de arranque, no el historial del topico.
+  kafka:
+    enabled: true
+    max-poll-records: 1
+    max-poll-interval-ms: 300000
+    auto-offset-reset: latest
 
 logging:
   # Nivel de log general (root) y específicos por paquete

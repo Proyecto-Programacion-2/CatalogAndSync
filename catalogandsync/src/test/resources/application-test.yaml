@@ -5,6 +5,12 @@
 spring:
   datasource:
     url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/catalogandsync_test}
+  # Ningun test abre conexion a Kafka: el listener se apaga por propiedad y la
+  # logica se prueba con dobles propios (sin emular a la catedra).
+  kafka:
+    bootstrap-servers: localhost:1
+    listener:
+      auto-startup: false
 
 # Valores placeholder para que los beans del cliente de la catedra se
 # construyan sin hacer requests ni abrir conexiones. No se emula a la catedra:
@@ -19,8 +25,12 @@ integration:
   redis-port: 1
   redis-username: test
   redis-password: test
+  kafka-bootstrap-servers: localhost:1
+  kafka-consumer-group-id: test-group
+  kafka-catalog-topic: catedra.catalog.test
 
-# El ciclo periodico se apaga en tests: no debe disparar sync ni tocar Redis.
+# El ciclo periodico y el consumidor Kafka se apagan en tests: no deben disparar
+# sync ni tocar Redis ni el broker.
 sync:
   redis:
     connect-timeout: 200ms
@@ -29,3 +39,8 @@ sync:
     enabled: false
     fixed-delay-ms: 900000
     initial-delay-ms: 0
+  kafka:
+    enabled: false
+    max-poll-records: 1
+    max-poll-interval-ms: 300000
+    auto-offset-reset: latest

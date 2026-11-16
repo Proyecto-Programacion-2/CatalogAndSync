@@ -9,8 +9,9 @@ import org.springframework.validation.annotation.Validated;
 /**
  * Datos que la catedra entrega en el bloque {@code integration} (IR §5.1).
  * <p>
- * Por ahora se bindea solo el subconjunto Redis; Kafka se agrega cuando exista
- * su consumidor (hito 1.7). El password nunca se expone en {@link #toString()}.
+ * Se bindea el subconjunto que usa este backend: Redis (versiones e incremental)
+ * y Kafka (topico del catalogo). Los topicos de turnos pertenecen a
+ * TurnosYReservas. El password nunca se expone en {@link #toString()}.
  */
 @Validated
 @ConfigurationProperties(prefix = "integration")
@@ -18,7 +19,10 @@ public record IntegrationProperties(
         @NotBlank String redisHost,
         @Min(1) @Max(65535) int redisPort,
         String redisUsername,
-        @NotBlank String redisPassword
+        @NotBlank String redisPassword,
+        @NotBlank String kafkaBootstrapServers,
+        @NotBlank String kafkaConsumerGroupId,
+        @NotBlank String kafkaCatalogTopic
 ) {
 
     @Override
@@ -26,6 +30,9 @@ public record IntegrationProperties(
         return "IntegrationProperties[redisHost=" + redisHost
                 + ", redisPort=" + redisPort
                 + ", redisUsername=" + redisUsername
-                + ", redisPassword=***]";
+                + ", redisPassword=***"
+                + ", kafkaBootstrapServers=" + kafkaBootstrapServers
+                + ", kafkaConsumerGroupId=" + kafkaConsumerGroupId
+                + ", kafkaCatalogTopic=" + kafkaCatalogTopic + "]";
     }
 }
